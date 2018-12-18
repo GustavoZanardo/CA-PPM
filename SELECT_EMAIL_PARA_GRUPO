@@ -1,0 +1,12 @@
+SELECT
+LISTAGG(RES_EMAIL, ';') WITHIN GROUP (ORDER BY RES_EMAIL) AS EMAIL
+FROM(
+SELECT 
+RESOURCES.EMAIL RES_EMAIL
+FROM SRM_RESOURCES RESOURCES
+INNER JOIN CMN_SEC_USERS c ON RESOURCES.user_id=c.id    
+INNER JOIN cmn_sec_user_groups c2 ON c.id=c2.user_id  
+INNER JOIN cmn_sec_groups c3 ON c3.id=c2.group_id         
+WHERE c3.group_code='tel_grp_ps_govern_capp'
+AND RESOURCES.PERSON_TYPE != 0                             
+AND  RESOURCES.IS_ACTIVE = 1) T1
