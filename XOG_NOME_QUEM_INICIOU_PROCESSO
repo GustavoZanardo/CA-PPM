@@ -1,0 +1,126 @@
+<gel:script xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:core="jelly:core" xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary"
+  xmlns:jxml="jelly:xml" xmlns:soap="jelly:com.niku.union.gel.SOAPTagLibrary" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+  xmlns:sql="jelly:sql" xmlns:util="jelly:util" xmlns:xog="http://www.niku.com/xog" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <!-- Get our XOG endpoint  -->
+  <core:invokeStatic className="com.niku.union.config.ConfigurationManager" method="getInstance" var="caConfigMngr"/>
+  <core:set value="${caConfigMngr.getProperties().getWebServer().getSchedulerUrl()}" var="url"/>
+  <core:if test="${!url.toLowerCase().startsWith('http')}">
+    <gel:log message="Unable to find XOG Endpoint"/>
+    <core:break/>
+  </core:if>
+  <gel:parameter default="your_xog_username" var="xogUsername"/>
+  <gel:parameter default="your_xog_password" secure="true" var="xogPassword"/>
+  <!-- Definir endereco do CA PPM para os links -->
+  <core:set value="${url}/niku/xog" var="XogUrl"/>
+  <core:set
+    value="https://cppm9296-dev.ondemand.ca.com/niku/nu#action:" var="urlExt"/>
+  <!-- Query to return values -->
+  <gel:setDataSource dbId="niku"/>
+  <!-- Buscar Código, Nome, Valor e Tipo do Projeto -->
+  <sql:query escapeText="false" var="inv">
+		SELECT INV.ID INV_ID
+		, INV.CODE INV_CODE
+		, INV.NAME INV_NAME
+	
+		FROM INV_INVESTMENTS INV
+
+		WHERE INV.ID = ${gel_objectInstanceId}
+	</sql:query>
+	
+	<sql:query escapeText="false" var="quem">
+	select 
+		caption.name process_name,
+		defn.process_code,
+		runs.id process_instance_id,
+		runs.status_code,
+		runs.start_date,
+		runs.end_date,
+		csu.first_name||' '||csu.last_name Run_By
+		from
+		BPM_RUN_PROCESSES runs
+		inner join BPM_RUN_PROCESS_ENGINES engine on engine.id=runs.process_engine_id
+		inner join BPM_RUN_STEPS steps on steps.process_instance_id=runs.id
+		inner join BPM_RUN_THREADS threads on (threads.process_instance_id=runs.id and steps.thread_id=threads.id)
+		inner join BPM_RUN_OBJECTS obj on (obj.pk_id=runs.id and obj.table_name='BPM_RUN_PROCESSES')
+		left join BPM_RUN_STEP_COND_RESULTS condres on condres.step_instance_id=steps.id
+		left join BPM_RUN_STEP_TRANSITIONS trnstn on trnstn.step_instance_id=steps.id
+		left join BPM_RUN_STEP_ACTION_RESULTS actres on actres.step_instance_id=steps.id
+		left join BPM_RUN_ASSIGNEES assignee on (assignee.pk_id=actres.id and assignee.table_name='BPM_RUN_STEP_ACTION_RESULTS')
+		left join BPM_RUN_ASSIGNEE_NOTES notes on notes.run_assignee_id=assignee.id
+		inner join BPM_DEF_PROCESS_VERSIONS ver on ver.id=runs.process_version_id
+		inner join BPM_DEF_PROCESSES defn on defn.id=ver.process_id
+		inner join CMN_CAPTIONS_NLS caption on (caption.table_name='BPM_DEF_PROCESSES' AND caption.language_code ='en' AND caption.pk_id=defn.id)
+		left join CMN_SEC_USERS csu on csu.id=runs.initiated_by
+		where
+		defn.process_code='tel_dt_avan_etp_concep'
+		and runs.id = ${gel_processInstanceId} 
+		group by caption.name, defn.process_code, runs.id, runs.status_code, runs.start_date, runs.end_date, csu.first_name||' '||csu.last_name
+		order by process_name, process_instance_id
+		</sql:query>
+	
+	
+	
+  <!-- Log into xog and get a session ID -->
+  <soap:invoke endpoint="${XogUrl}" var="auth">
+    <soap:message>
+      <soapenv:Envelope>
+        <soapenv:Header/>
+        <soapenv:Body>
+          <xog:Login>
+            <xog:Username>${xogUsername}</xog:Username>
+            <xog:Password>${xogPassword}</xog:Password>
+          </xog:Login>
+        </soapenv:Body>
+      </soapenv:Envelope>
+    </soap:message>
+  </soap:invoke>
+  <!-- Checking whether a sessionID is returned. If not, it means that login was unsuccessful -->
+  <gel:set asString="true" select="$auth/SOAP-ENV:Envelope/SOAP-ENV:Body/xog:SessionID/text()" var="sessionID"/>
+  <core:choose>
+    <core:when test="${sessionID == null}">
+      <gel:log>Couldn't log in. Please check the hostname/username/password.</gel:log>
+    </core:when>
+    <core:otherwise>
+      <!--  <gel:log>Login successful. Session ID is ${sessionID}</gel:log>-->
+    </core:otherwise>
+  </core:choose>
+  <!-- XOG in an object -->
+  <soap:invoke endpoint="${XogUrl}" var="runresult">
+    <soap:message>
+      <soapenv:Envelope>
+        <soapenv:Header>
+          <xog:Auth>
+            <xog:SessionID>${sessionID}</xog:SessionID>
+          </xog:Auth>
+        </soapenv:Header>
+        <soapenv:Body>
+          <NikuDataBus xsi:noNamespaceSchemaLocation="../xsd/nikuxog_idea.xsd">
+            <Header action="write" externalSource="NIKU" objectType="idea" version="8.0"/>
+            <Ideas>
+              <Idea name="${inv.rows.0.INV_NAME}" objectID="${inv.rows.0.INV_CODE}">
+                <CustomInformation>
+                  <ColumnValue name="tel_quem_concep">${quem.rows.0.Run_By}</ColumnValue>				  
+                </CustomInformation>
+              </Idea>
+            </Ideas>
+          </NikuDataBus>
+        </soapenv:Body>
+      </soapenv:Envelope>
+    </soap:message>
+  </soap:invoke>
+  <!-- Log out of xog -->
+  <soap:invoke endpoint="${XogUrl}" var="logoutresult">
+    <soap:message>
+      <soapenv:Envelope>
+        <soapenv:Header>
+          <xog:Auth>
+            <xog:SessionID>${sessionID}</xog:SessionID>
+          </xog:Auth>
+        </soapenv:Header>
+        <soapenv:Body>
+          <xog:Logout/>
+        </soapenv:Body>
+      </soapenv:Envelope>
+    </soap:message>
+  </soap:invoke>
+</gel:script>
