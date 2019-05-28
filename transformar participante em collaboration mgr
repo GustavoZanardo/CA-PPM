@@ -1,0 +1,33 @@
+<NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/nikuxog_user.xsd">
+
+  <Header version="6010" action="write" objectType="user" externalSource="ORACLE-FINANCIAL"/>
+
+            <Users>
+
+                        <User externalId="1234" userName="ruy.santos@b3.com.br" isLDAP="true" userStatus="Active">
+
+                                    <PersonalInformation emailAddress="ruy.santos@b3.com.br" firstName="Ruy" lastName="Barbosa Dos Santos Junior"/>
+
+                                    <Resource resourceId="rusantos"/>
+
+                                    <Groups>
+
+                                                <Group id="CLB_PROJECT_MEMBERS5098066">
+
+                                                            <nls languageCode="en" name="project 5098066 participant group"/>
+
+                                                </Group>
+
+                                                <Group id="CLB_PROJECT_MANAGERS5098066">
+
+                                                            <nls languageCode="en" name="project 5098066 CM group"/>
+
+                                                </Group>
+
+                                    </Groups>
+
+                        </User>
+
+            </Users>
+
+</NikuDataBus>
