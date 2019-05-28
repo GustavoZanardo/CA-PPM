@@ -1,0 +1,33 @@
+<NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+xsi:noNamespaceSchemaLocation="../xsd/nikuxog_project.xsd">
+
+<Header version="6.0.11" action="write" objectType="project" externalSource="NIKU"/>
+
+<Projects>
+
+<Project name="Recapacitação do serviço de Drop Copy" projectID="00070469"
+
+managerResourceID="dadias" start="2013-09-27T00:00:00" finish="2014-05-12T00:00:00" active="1" openForTimeEntry="false"
+
+trackMode="2" approved="1">
+
+<Resources>
+
+<Resource resourceID="admin"/>
+
+</Resources>
+
+<General addedBy="admin" addedDate="2019-05-28"/>
+
+<participants>
+
+<resource userName="ruy.santos@b3.com.br"/>
+
+</participants>
+
+</Project>
+
+</Projects>
+
+</NikuDataBus>
