@@ -1,0 +1,461 @@
+<div style="background-color: #E8EBF2; padding: 15px;">
+
+ 
+
+  <fieldset>
+
+ 
+
+    <legend>XOG In</legend>
+
+ 
+
+    <textarea rows="22" cols="120" wrap="off" class="ppm_field ppm_code_field" style="resize:both;" id="xog_in"></textarea>
+
+ 
+
+  </fieldset>
+
+ 
+
+  <div class="ppm_button_bar">
+
+ 
+
+    <button id="bt_send" onclick="xogExec();" class="ppm_button">Run</button>
+
+ 
+
+  </div>
+
+ 
+
+  <br>
+
+ 
+
+  <fieldset>
+
+ 
+
+    <legend>XOG Result</legend>
+
+ 
+
+    <textarea rows="16" cols="120" wrap="off" class="ppm_field ppm_code_field" style="resize:both;" id="xog_result" readonly></textarea>
+
+ 
+
+  </fieldset>
+
+ 
+
+  <br>
+
+ 
+
+  <fieldset>
+
+ 
+
+    <legend>XOG Output</legend>
+
+ 
+
+    <textarea rows="5" cols="120" wrap="off" class="ppm_field ppm_code_field" style="resize:both; background-color: #eeeeee;" id="xog_output" readonly></textarea>
+
+ 
+
+  </fieldset>
+
+ 
+
+</div>
+
+ 
+
+<script type="text/javascript">
+
+ 
+
+  var sessionID;
+
+ 
+
+  var xmlHttpSessionID = new XMLHttpRequest();
+
+ 
+
+  xmlHttpSessionID.onreadystatechange = function() {
+
+ 
+
+    if (xmlHttpSessionID.readyState == 4 && xmlHttpSessionID.status == 200) {
+
+ 
+
+      var idxSess = xmlHttpSessionID.responseText.indexOf('sessionId') + 12;
+
+ 
+
+      var offsetPreSess = 10;
+
+ 
+
+      var idxSessEnd = xmlHttpSessionID.responseText.indexOf('"},"page"');
+
+ 
+
+ 
+
+ 
+
+      sessionID = xmlHttpSessionID.responseText.substring(idxSess, idxSessEnd);
+
+ 
+
+      console.log(sessionID);
+
+ 
+
+    }
+
+ 
+
+  }
+
+ 
+
+ 
+
+ 
+
+  xmlHttpSessionID.open('GET', window.location.protocol + '//' + window.location.host + '/niku/nu?uitk.vxml=1&action=mainnav.about', false);
+
+ 
+
+  xmlHttpSessionID.setRequestHeader("Content-Type", "text/html;charset=UTF-8");
+
+ 
+
+  xmlHttpSessionID.send(null);
+
+ 
+
+ 
+
+ 
+
+  /*function getCookie(c_name) {
+
+ 
+
+    var i, cookieName, cookieValue, thisCookie, allCookies = document.cookie.split(";");
+
+ 
+
+    for (i = 0; i < allCookies.length; i++) {
+
+ 
+
+      thisCookie = allCookies[i].split("=");
+
+ 
+
+      cookieName = thisCookie[0].replace(/^\s+|\s+$/g, "");
+
+ 
+
+      cookieValue = thisCookie[1];
+
+ 
+
+      if (cookieName == c_name) {
+
+ 
+
+        console.log(cookieValue);
+
+ 
+
+      }
+
+ 
+
+    }
+
+ 
+
+  }*/
+
+ 
+
+ 
+
+ 
+
+  function openAlert() {
+
+ 
+
+    var ALERT_MODAL_CONTENT =
+
+ 
+
+      '<div class="ppm_dialog" style="width: 500px;height: auto; z-index: 103;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -50%);" id="ppm_dialog_xog">' +
+
+ 
+
+      '<div class="ppm_dialog_inner ppm_workspace_bg">' +
+
+ 
+
+      '<div class="ppm_portlet_title_bar" style="height: auto;">' +
+
+ 
+
+      '<h1 class="ppm_workspace_title" style="font-weight: bold;">Message</h1>' +
+
+ 
+
+      '</div>' +
+
+ 
+
+      '<div class="ppm_portlet" style="padding: 15px; font-size: 12px; font-weight: initial; margin: 0px;">' +
+
+ 
+
+      '<p style="padding: 10px;">Wait a moment while the system processes the action.</p>' +
+
+ 
+
+      '</div>' +
+
+ 
+
+      '</div>' +
+
+ 
+
+      '</div>';
+
+ 
+
+ 
+
+ 
+
+    jQuery("#ppm_app").append(ALERT_MODAL_CONTENT);
+
+ 
+
+    jQuery("#ppm_app").append('<div class="ppm_modal_mask" style="z-index:102;" id="ppm_modal_mask_xog"></div>');
+
+ 
+
+  };
+
+ 
+
+ 
+
+ 
+
+  function closeAlert() {
+
+ 
+
+    jQuery("#ppm_dialog_xog").remove();
+
+ 
+
+    jQuery("#ppm_modal_mask_xog").remove();
+
+ 
+
+  }
+
+ 
+
+ 
+
+ 
+
+  function xogExec() {
+
+ 
+
+    //var sessionID = getCookie('sessionId');
+
+ 
+
+    var soapURL = window.location.protocol + '//' + window.location.host + '/niku/xog';
+
+ 
+
+    var xogIn = jQuery("#xog_in").val().substr(jQuery("#xog_in").val().indexOf("<NikuDataBus"), jQuery("#xog_in").val().length);
+
+ 
+
+ 
+
+ 
+
+    var request =
+
+ 
+
+      '<?xml version="1.0" encoding="utf-8" ?>' +
+
+ 
+
+      '<soapenv:Envelope xmlns:obj="http://www.niku.com/xog" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">' +
+
+ 
+
+      '  <soapenv:Header>' +
+
+ 
+
+      '    <obj:Auth>' +
+
+ 
+
+      '      <obj:SessionID>' + sessionID + '</obj:SessionID>' +
+
+ 
+
+      '    </obj:Auth>' +
+
+ 
+
+      '  </soapenv:Header>' +
+
+ 
+
+      '  <soapenv:Body>' + xogIn + '</soapenv:Body>' +
+
+ 
+
+      '</soapenv:Envelope>';
+
+ 
+
+ 
+
+ 
+
+    jQuery("#xog_result").val(null);
+
+ 
+
+    jQuery("#xog_output").val(null);
+
+ 
+
+ 
+
+ 
+
+    var xmlhttp = new XMLHttpRequest();
+
+ 
+
+ 
+
+ 
+
+    openAlert();
+
+ 
+
+ 
+
+ 
+
+    xmlhttp.onreadystatechange = function() {
+
+ 
+
+      if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+
+ 
+
+        var xmlDoc = xmlhttp.responseXML;
+
+ 
+
+        try {
+
+ 
+
+          var xogOutput = xmlDoc.getElementsByTagName("XOGOutput")[0];
+
+ 
+
+          jQuery("#xog_output").val(new XMLSerializer().serializeToString(xogOutput));
+
+ 
+
+          xogOutput.parentNode.removeChild(xogOutput);
+
+ 
+
+          jQuery("#xog_result").val(new XMLSerializer().serializeToString(xmlDoc.getElementsByTagName("NikuDataBus")[0]));
+
+ 
+
+        } catch (err) {
+
+ 
+
+          console.log(err.message);
+
+ 
+
+          closeAlert();
+
+ 
+
+        }
+
+ 
+
+        console.log(xmlhttp.responseText);
+
+ 
+
+        closeAlert();
+
+ 
+
+      }
+
+ 
+
+    }
+
+ 
+
+ 
+
+ 
+
+    xmlhttp.open('POST', soapURL, true);
+
+ 
+
+    xmlhttp.setRequestHeader("Content-Type", "text/xml");
+
+ 
+
+    xmlhttp.send(request);
+
+ 
+
+  }
+
+ 
+
+</script>
