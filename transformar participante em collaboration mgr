@@ -4,11 +4,11 @@
 
             <Users>
 
-                        <User externalId="1234" userName="ruy.santos@b3.com.br" isLDAP="true" userStatus="Active">
+                        <User externalId="1234" userName="user.name" isLDAP="true" userStatus="Active">
 
-                                    <PersonalInformation emailAddress="ruy.santos@b3.com.br" firstName="Ruy" lastName="Barbosa Dos Santos Junior"/>
+                                    <PersonalInformation emailAddress="email@.com.br" firstName="Ray" lastName="Junior"/>
 
-                                    <Resource resourceId="rusantos"/>
+                                    <Resource resourceId="rjunior"/>
 
                                     <Groups>
 
