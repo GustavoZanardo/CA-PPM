@@ -6,7 +6,7 @@ xsi:noNamespaceSchemaLocation="../xsd/nikuxog_project.xsd">
 
 <Projects>
 
-<Project name="Recapacitação do serviço de Drop Copy" projectID="00070469"
+<Project name="project.name" projectID="00070469"
 
 managerResourceID="dadias" start="2013-09-27T00:00:00" finish="2014-05-12T00:00:00" active="1" openForTimeEntry="false"
 
@@ -22,7 +22,7 @@ trackMode="2" approved="1">
 
 <participants>
 
-<resource userName="ruy.santos@b3.com.br"/>
+<resource userName="user.name"/>
 
 </participants>
 
