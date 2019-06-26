@@ -1,0 +1,28 @@
+SELECT   
+ @SELECT:DIM:USER_DEF:IMPLIED:TASK:tsk.prid:internalTaskID@,
+         @SELECT:DIM_PROP:USER_DEF:IMPLIED:TASK:tsk.prname:taskName@,
+         @SELECT:DIM_PROP:USER_DEF:IMPLIED:TASK:tsk.prexternalid:taskID@,
+         @SELECT:DIM_PROP:USER_DEF:IMPLIED:TASK:tsk.prprojectid:inv_id@,
+         @SELECT:DIM_PROP:USER_DEF:IMPLIED:TASK:inv.name:projectName@,
+         @SELECT:DIM_PROP:USER_DEF:IMPLIED:TASK:inv.code:projectID@,
+         @SELECT:DIM_PROP:USER_DEF:IMPLIED:TASK:assign.prresourceid:resource_id@,
+         @SELECT:DIM_PROP:USER_DEF:IMPLIED:TASK:RESOURCES.unique_name:RESOURCES_LOGIN@,
+         @SELECT:DIM_PROP:USER_DEF:IMPLIED:TASK:assign.prid:assign_prid@
+
+FROM 
+
+    prtask tsk
+join prassignment assign on assign.prtaskid = tsk.prid
+join odf_ca_assignment odf_assign on odf_assign.id = assign.prid
+join srm_resources RESOURCES on assign.prresourceid = RESOURCES.id
+join inv_investments inv on inv.id = tsk.prprojectid 
+join PRTeam pr on pr.prresourceid = assign.prresourceid and pr.prprojectid =tsk.prprojectid
+
+ 
+WHERE    tsk.pristask = 1
+and      tsk.is_open_te = 1
+AND      inv.is_open_for_te = 1
+AND      pr.prisopen = 1
+AND      (inv.odf_object_code = 'project' or inv.odf_object_code = 'other' )
+AND      RESOURCES.unique_name = @WHERE:PARAM:USER_DEF:STRING:RESOURCE_LOGIN@ 
+AND      @filter@
