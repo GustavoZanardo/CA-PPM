@@ -1,0 +1,99 @@
+<gel:script xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:core="jelly:core" xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary"
+  xmlns:jxml="jelly:xml" xmlns:soap="jelly:com.niku.union.gel.SOAPTagLibrary" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+  xmlns:sql="jelly:sql" xmlns:util="jelly:util" xmlns:xog="http://www.niku.com/xog" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <gel:parameter default="your_xog_username" var="xogUsername"/>
+  <gel:parameter default="your_xog_password" secure="true" var="xogPassword"/>
+  <gel:parameter default="your_env_URL" var="xogURL"/>
+  <!-- Consulta -->
+  <gel:setDataSource dbId="niku"/>
+   <sql:query escapeText="false" var="sa">
+	SELECT
+	  INV.CODE INV_CODE,
+	  INV.NAME INV_NAME,
+	  SA.ID SA_ID,
+	  SA.CODE SA_CODE,
+	  LISTAGG(FASES.NAME, ', ') WITHIN GROUP (ORDER BY FASES.NAME) FASES
+	FROM
+	  ODF_CA_TEL_OBJ_SLC_AGN_CAPP SA
+	  JOIN INV_INVESTMENTS INV ON INV.ID = SA.ODF_PARENT_ID
+	  JOIN ODF_MULTI_VALUED_LOOKUPS MLKP ON MLKP.PK_ID = SA.ID AND MLKP.ATTRIBUTE = 'fases_projeto'
+	  JOIN CMN_LOOKUPS_V FASES ON FASES.LOOKUP_CODE = MLKP.VALUE AND FASES.LOOKUP_TYPE = 'TEL_FASE_PRJ' AND FASES.LANGUAGE_CODE = 'pt'
+	WHERE
+	  SA.ID = ${gel_objectInstanceId}
+	GROUP BY
+	  INV.CODE,
+	  INV.NAME,
+	  SA.ID,
+	  SA.CODE
+	</sql:query>
+  <!-- Log into xog and get a session ID -->
+  <soap:invoke endpoint="${xogURL}" var="auth">
+    <soap:message>
+      <soapenv:Envelope>
+        <soapenv:Header/>
+        <soapenv:Body>
+          <xog:Login>
+            <xog:Username>${xogUsername}</xog:Username>
+            <xog:Password>${xogPassword}</xog:Password>
+          </xog:Login>
+        </soapenv:Body>
+      </soapenv:Envelope>
+    </soap:message>
+  </soap:invoke>
+  <!-- Checking whether a sessionID is returned. If not, it means that login was unsuccessful -->
+  <gel:set asString="true" select="$auth/SOAP-ENV:Envelope/SOAP-ENV:Body/xog:SessionID/text()" var="sessionID"/>
+  <core:choose>
+    <core:when test="${sessionID == null}">
+      <gel:log>Couldn't log in. Please check the hostname/username/password.</gel:log>
+    </core:when>
+    <core:otherwise>
+      <gel:log>Login successful. Session ID is ${sessionID}</gel:log>
+    </core:otherwise>
+  </core:choose>
+  <!-- Xog no sub objeto Informações Comerciais - Marketing - -->
+  <soap:invoke endpoint="${xogURL}" var="runresult">
+    <soap:message>
+      <soapenv:Envelope>
+        <soapenv:Header>
+          <xog:Auth>
+            <xog:SessionID>${sessionID}</xog:SessionID>
+          </xog:Auth>
+        </soapenv:Header>
+        <soapenv:Body>
+		<!-- Estrutura do XOG -->
+		<NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/nikuxog_customObjectInstance.xsd">
+		   <Header action="write" externalSource="NIKU" objectType="customObjectInstance" version="15.4.1.115" />
+		   <customObjectInstances objectCode="tel_obj_slc_agn_capp">
+			<core:forEach items="${sa.rows}" trim="true" var="SA">
+			  <instance instanceCode="${SA.SA_CODE}" objectCode="tel_obj_slc_agn_capp" parentInstanceCode="${PRJ.INV_CODE}" parentObjectCode="idea">
+				 <CustomInformation>
+					<ColumnValue name="code">${SA.SA_CODE}</ColumnValue>					
+					<ColumnValue name="fases_proj">${SA.FASES}</ColumnValue>
+					<ColumnValue name="partition_code">tel_pes</ColumnValue>
+				 </CustomInformation>
+			  </instance> 
+			</core:forEach>
+		   </customObjectInstances>
+		</NikuDataBus>
+		 <!-- Termino da estrutura do XOG -->
+        </soapenv:Body>
+      </soapenv:Envelope>
+    </soap:message>
+  </soap:invoke>
+  <!-- Log out of xog -->
+  <soap:invoke endpoint="${xogURL}" var="logoutresult">
+    <soap:message>
+      <soapenv:Envelope>
+        <soapenv:Header>
+          <xog:Auth>
+            <xog:SessionID>${sessionID}</xog:SessionID>
+          </xog:Auth>
+        </soapenv:Header>
+        <soapenv:Body>
+          <xog:Logout/>
+        </soapenv:Body>
+      </soapenv:Envelope>
+    </soap:message>
+  </soap:invoke>
+  <!-- comment out below log output once in production  -->
+</gel:script>
