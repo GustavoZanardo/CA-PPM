@@ -1,0 +1,59 @@
+select
+                            a.id id,
+                            a.code code,
+                            a.name name,
+                            a.partition partition,
+                            a.lider_id lider_id,
+                            'idea' tipo,
+                            a.srm_id srm_id,
+                            a.full_name srm_name,
+                            a.unique_name user_name,
+                            a.email user_email
+from
+( select 
+ inv.id id,
+                            inv.code code,
+                            inv.name name,
+                            odf.partition_code partition,
+                            srm2.id lider_id,
+                            'idea' tipo,
+                            srm.id srm_id,
+                            srm.full_name full_name,
+                            srm.unique_name unique_name,
+                            srm.email email
+from
+                          inv_investments inv
+                       join odf_ca_idea odf on odf.id = inv.id
+                       join odf_ca_inv i on i.id = inv.id
+                       join srm_resources srm2 on srm2.id = i.bvf_lider_demand
+                       join ODF_MULTI_VALUED_LOOKUPS lkp on lkp.pk_id = inv.id and lkp.attribute ='b3_equip_multi' and lkp.object = 'idea'
+                       inner join odf_ca_b3_grup_multi g on g.id  = lkp.value
+                       inner join ODF_MULTI_VALUED_LOOKUPS lkp2 on lkp2.pk_id = g.id and lkp2.attribute ='b3_participantes' and lkp2.object = 'b3_grup_multi'
+                       inner join srm_resources srm on srm.id  = lkp2.value
+                       left join odf_ca_bvf_est_gx gx on inv.id = gx.bvf_pai and srm.id=gx.bvf_resp                                                              
+where inv.odf_object_code = 'idea' and gx.bvf_pai is null
+union
+select
+ inv.id id,
+                            inv.code code,
+                            inv.name name,
+                            odf.partition_code partition,
+                            srm2.id lider_id,
+                            'idea' tipo,
+                            srm.id srm_id,
+                            srm.full_name full_name,
+                            srm.unique_name unique_name,
+                            srm.email email
+           
+                        from
+                          inv_investments inv
+                       join odf_ca_idea odf on odf.id = inv.id
+                       join odf_ca_inv i on i.id = inv.id
+                       join srm_resources srm2 on srm2.id = i.bvf_lider_demand
+                       join ODF_MULTI_VALUED_LOOKUPS lkp on lkp.pk_id = inv.id and lkp.attribute ='b3_equip_multi' and lkp.object = 'idea'
+                       inner join srm_resources srm on srm.id  = lkp.value
+                       left join odf_ca_bvf_est_gx gx on inv.id = gx.bvf_pai and srm.id=gx.bvf_resp                                                              
+where inv.odf_object_code = 'idea' and gx.bvf_pai is null
+)a
+where a.id = ${gel_objectInstanceId}
+                         
