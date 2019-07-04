@@ -1,0 +1,141 @@
+<gel:script xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:core="jelly:core" xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary"
+  xmlns:jxml="jelly:xml" xmlns:soap="jelly:com.niku.union.gel.SOAPTagLibrary" xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+  xmlns:sql="jelly:sql" xmlns:util="jelly:util" xmlns:xog="http://www.niku.com/xog" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <gel:parameter default="your_xog_username" var="xogUsername"/>
+  <gel:parameter default="your_xog_password" secure="true" var="xogPassword"/>
+  <gel:parameter default="your_env_URL" var="xogURL"/>
+  <!-- Consulta -->
+  <gel:setDataSource dbId="niku"/>
+   <sql:query escapeText="false" var="sa">
+SELECT 
+ 
+ pr.prid || resources.id || inv.id external_id,
+ inv.id inv_id,
+ inv.name inv_name,
+ inv.code inv_code,
+ assign.prresourceid  resource_id,
+ RESOURCES.unique_name UNIQUE_NAME,
+ RESOURCES.LAST_NAME LAST_NAME,
+ RESOURCES.FIRST_NAME FIRST_NAME,
+ RESOURCES.USER_ID USER_ID,
+ assign.prid assign_prid,
+ NVL(ROUND(s_alloc.slice,1),0) ALLOC,
+ oteam.b3_trans_auto transacao_automatica,
+ pr.prroleid funcao,
+ TO_CHAR(SYSDATE - 5, 'YYYY-MM-DD') data_hoje,
+ tsk.prid id_tarefa
+ 
+FROM 
+
+    prtask tsk
+join prassignment assign on assign.prtaskid = tsk.prid
+join odf_ca_assignment odf_assign on odf_assign.id = assign.prid
+join srm_resources RESOURCES on assign.prresourceid = RESOURCES.id
+join inv_investments inv on inv.id = tsk.prprojectid 
+join PRTeam pr on pr.prresourceid = assign.prresourceid and pr.prprojectid =tsk.prprojectid
+join odf_ca_team oteam on pr.prid = oteam.id
+LEFT JOIN CMN_LOOKUPS_V funcao ON funcao.LOOKUP_CODE = pr.prroleid AND funcao.LOOKUP_TYPE = 'SCH_BROWSE_ROLE' AND funcao.LANGUAGE_CODE = 'pt'
+			
+
+
+--Calendario
+        INNER  JOIN nbi_dim_calendar_time cal ON cal.hierarchy_level = 'MONTH' AND Trunc(cal.period_start_date,'MM') BETWEEN Trunc(inv.SCHEDULE_START, 'MM') AND Trunc(inv.SCHEDULE_FINISH,'MM')
+--timeslice allocation
+        LEFT JOIN prj_blb_slices s_alloc 
+            INNER  JOIN prj_blb_slicerequests sr_alloc ON   s_alloc.slice_request_id = sr_alloc.id AND  sr_alloc.request_name = 'MONTHLYRESOURCEALLOCCURVE'
+        ON pr.prid = s_alloc.prj_object_id AND s_alloc.slice_date = cal.period_start_date 
+ 
+WHERE   (inv.odf_object_code = 'project' or inv.odf_object_code = 'other' )
+AND      tsk.is_open_te = 1
+AND      inv.is_open_for_te = 1
+AND      tsk.prexternalid = '~rmw'
+AND      cal.month_key = '2019-06'
+AND      oteam.b3_trans_auto = 1  
+AND      NVL(ROUND(s_alloc.slice,1),0) != 0
+-- FILTRO DE FUNÇÃO
+AND 	 pr.prroleid IN ('5015003', '5015002', '5015001')
+AND 	 inv.id = ${gel_objectInstanceId}
+	</sql:query>
+  <!-- Log into xog and get a session ID -->
+  <soap:invoke endpoint="${xogURL}" var="auth">
+    <soap:message>
+      <soapenv:Envelope>
+        <soapenv:Header/>
+        <soapenv:Body>
+          <xog:Login>
+            <xog:Username>${xogUsername}</xog:Username>
+            <xog:Password>${xogPassword}</xog:Password>
+          </xog:Login>
+        </soapenv:Body>
+      </soapenv:Envelope>
+    </soap:message>
+  </soap:invoke>
+  <!-- Checking whether a sessionID is returned. If not, it means that login was unsuccessful -->
+  <gel:set asString="true" select="$auth/SOAP-ENV:Envelope/SOAP-ENV:Body/xog:SessionID/text()" var="sessionID"/>
+  <core:choose>
+    <core:when test="${sessionID == null}">
+      <gel:log>Couldn't log in. Please check the hostname/username/password.</gel:log>
+    </core:when>
+    <core:otherwise>
+      <gel:log>Login successful. Session ID is ${sessionID}</gel:log>
+    </core:otherwise>
+  </core:choose>
+  <!-- Xog no sub objeto Informações Comerciais - Marketing - -->
+  <soap:invoke endpoint="${xogURL}" var="runresult">
+    <soap:message>
+      <soapenv:Envelope>
+        <soapenv:Header>
+          <xog:Auth>
+            <xog:SessionID>${sessionID}</xog:SessionID>
+          </xog:Auth>
+        </soapenv:Header>
+        <soapenv:Body>
+		<!-- Estrutura do XOG -->
+		<NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/nikuxog_inboundTransaction.xsd">
+  <Header action="write" externalSource="ORACLE-FINANCIAL" objectType="transaction" version="6.0.11"/>
+  <Transactions>
+			<core:forEach items="${sa.rows}" trim="true" var="SA">
+                <Transaction 
+					voucherNumber="${SA.inv_code}_PRJ"
+					actualCostRate="130" 
+					actualCostRateCurrency="BRL" 
+					billRate="1"
+                    billRateCurrency="BRL" 
+					chargeCode="CAPEX"
+					chargeable="1"
+                    externalID="X_RESCODE_${SA.inv_code}1" 
+					groupId="12345"
+                    inputTypeCode="HR_MO_INTERNA"
+					importStatus="N"
+					projectID="${SA.inv_code}"
+                    resourceID="${SA.UNIQUE_NAME}" 
+					taskID="${SA.id_tarefa}"
+                    transactionDate="${SA.data_hoje}"
+					transactionClass="HRINTERN"
+					transactionType="L"
+                    units="${SA.ALLOC}"/>
+			 </core:forEach>					
+			</Transactions>
+				</NikuDataBus>  
+		 <!-- Termino da estrutura do XOG -->
+        </soapenv:Body>
+      </soapenv:Envelope>
+    </soap:message>
+  </soap:invoke>
+  <!-- Log out of xog -->
+  <soap:invoke endpoint="${xogURL}" var="logoutresult">
+    <soap:message>
+      <soapenv:Envelope>
+        <soapenv:Header>
+          <xog:Auth>
+            <xog:SessionID>${sessionID}</xog:SessionID>
+          </xog:Auth>
+        </soapenv:Header>
+        <soapenv:Body>
+          <xog:Logout/>
+        </soapenv:Body>
+      </soapenv:Envelope>
+    </soap:message>
+  </soap:invoke>
+  <!-- comment out below log output once in production  -->
+</gel:script>
