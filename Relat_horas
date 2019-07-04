@@ -1,14 +1,51 @@
-SELECT @SELECT:DIM:USER_DEF:IMPLIED:PROJETO:team.prid || r.id || p.id || programa.id || cal.month_key:chave@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:r.id:id_interno_recurso@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:r.first_name || ' ' || r.last_name:nome_recurso@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:r.unique_name:login_name@,  
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:p.name:nome_prj@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:p.id:id_interno_prj@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:p.code:id_prj@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:gerente.first_name || ' ' || gerente.last_name:gerente_nome@,    
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:cal.month_key:month_key@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:cal.period_start_date:period_start_date@,
-@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:CASE WHEN cal.month_key >= '2019-06' 
+SELECT team.prid || r.id || p.id || programa.id || cal.month_key chave,
+        r.id id_interno_recurso,
+        r.first_name || ' ' || r.last_name nome_recurso,
+        r.unique_name login_name,
+        r.is_active rec_ativo_id,
+        r.email email,
+        odf.b3_charge_code r_charge_code,
+(case when odf.b3_charge_code is null then charge_code.prname 
+when odf.b3_charge_code = 5000001 then 'CAPEX'
+when odf.b3_charge_code = 5000002 then 'OPEX' END) r_charge_code_name,
+        decode(r.is_active,1,'Ativo','Inativo') rec_ativo,
+        prjr.prisrole e_funcao,
+        obs.n8_name n8_name,
+        obs.n7_name n7_name,
+        obs.coord_name coord_name,
+        obs.geren_name geren_name,
+        obs.dir_name dir_name,
+        obs.dir_exec_name dir_exec_name,
+        funcao.full_name funcao,
+        funcao.id funcao_id,
+        ocp.bvf_exec exec_por,
+        tipo_contrat.name tipo_contratacao,
+        tipo_contrat.id tipo_contracao_id,
+        oci.bvf_diretor_solicita diretor_solic_id, 
+        dir_solic.first_name || ' ' || dir_solic.last_name diretor_solic,
+        p.name nome_prj,
+        p.id id_interno_prj,
+        p.code id_prj,
+        gerente.first_name || ' ' || gerente.last_name gerente_nome,
+        gerente.user_id gerente_id,
+        gerente_rec.first_name || ' ' || gerente_rec.last_name gerente_rec_nome,
+        gerente_rec.user_id gerente_rec_id,
+        ocp.bvf_cod_proj_sap cod_proj_sap,
+        ocp.bvf_cod_proj_sap_ope cod_proj_sap_ope,
+        ocp.bvf_cod_pr_sap_mo_ca cod_pr_sap_mo_ca,
+        ocp.bvf_prioridade prioridade,        
+        programa.name nome_programa, 
+        programa.id id_interno_programa,
+        programa.code id_programa,
+        etapa.name etapa,
+(CASE WHEN ocp.bvf_porte=1 THEN 'Pequeno' WHEN ocp.bvf_porte=2 THEN 'Médio' WHEN ocp.bvf_porte=3 THEN 'Grande' END) porte_projeto,
+        p.chargecodeid codigo_encargo_id,
+        charge_code.prname codigo_encargo,
+        pac_r.vendor_code fornecedor_code,
+        fornec.address_name fornecedor,
+        cal.month_key month_key,
+        cal.period_start_date period_start_date,
+CASE WHEN cal.month_key >= '2019-06' 
 		THEN ((nvl(round(s_alloc.slice,1),0)) / (CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END) / 
 			  (CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
 			  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
@@ -29,16 +66,33 @@ SELECT @SELECT:DIM:USER_DEF:IMPLIED:PROJETO:team.prid || r.id || p.id || program
 							  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 
 						 END)
 			   )
-END:horas_plan_equipe_fte@,
-@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:CASE WHEN cal.month_key >= '2019-06' then (nvl(round(s_alloc.slice,1),0)) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end:horas_plan_equipe@,
-@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end:horas_prev2@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))/8) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end:horas_prev1@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(nvl(s_alloc.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END):FTE_prev1@,
-        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END):horas_prev@,
-@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END)/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END):FTE_prev@,
-@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(nvl(s_act.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END):FTE_real@,
-@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(nvl(s_act.slice,0)):horas_real@
-        
+END horas_plan_equipe_fte,
+CASE WHEN cal.month_key >= '2019-06' then (nvl(round(s_alloc.slice,1),0)) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end horas_plan_equipe,
+CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end horas_prev2,
+        CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))/8) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end horas_prev1,
+        sum(nvl(s_alloc.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) FTE_prev1,
+        sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END) horas_prev,
+sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END)/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) FTE_prev,
+sum(nvl(s_act.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) FTE_real,
+sum(nvl(s_act.slice,0)) horas_real,
+        tipo_investimento.name tipo_investimento,
+        lower(tipo_investimento.lookup_code) id_tipo_investimento,
+        p.is_active ativo_id,
+        categ.name name_categoria,
+        e.id id_esteira,
+        e.name name_esteira,
+        oci.bvf_meta_corp meta_corp_id,
+        oci.bvf_apl_proj apl_proj,
+        CASE WHEN oci.bvf_meta_corp = 1 THEN 'Sim' ELSE 'Não' end meta_corp,       
+        oci.b3_roadmap roadmap_id,
+        CASE WHEN oci.b3_roadmap = 1 THEN 'Sim' ELSE 'Não' end roadmap,       
+        oci.b3_faixa_painel faixa_painel_id,
+        faixa.name faixa_painel,
+        classificacao.name classificacao,
+        oci.bvf_class classificacao_id,
+        ocp.bvf_cod_proj_sap ordem_int_des_capex,
+        ocp.bvf_cod_proj_sap_ope ordem_int_des_opex,
+        ocp.bvf_cod_pr_sap_mo_ca ordem_int_mdo_capex
 
 FROM    inv_investments p 
         INNER JOIN prteam team ON team.prprojectid = p.id 
@@ -97,9 +151,9 @@ AND categ.language_code = 'pt' and categ.lookup_type = 'INV_OTHER_CATEGORY_TYPE'
 --fornecedor e lookups
         LEFT JOIN pac_mnt_resources pac_r on r.id = pac_r.id
         LEFT JOIN APMASTER fornec on  pac_r.vendor_code = fornec.vendor_code and fornec.status_type = 1
-        LEFT JOIN cmn_lookups_v tipo_contrat ON tipo_contrat.lookup_type = 'SRM_RESOURCE_TYPE' AND tipo_contrat.language_code = @WHERE:PARAM:LANGUAGE@ AND tipo_contrat.id = r.person_type
+        LEFT JOIN cmn_lookups_v tipo_contrat ON tipo_contrat.lookup_type = 'SRM_RESOURCE_TYPE' AND tipo_contrat.language_code = 'en' AND tipo_contrat.id = r.person_type
         LEFT JOIN prchargecode charge_code on p.chargecodeid = charge_code.prid
-        LEFT JOIN cmn_lookups_v tipo_investimento ON tipo_investimento.lookup_code = Upper(p.odf_object_code) AND tipo_investimento.lookup_type = 'INVESTMENT_OBJ_TYPE' AND tipo_investimento.language_code = @WHERE:PARAM:LANGUAGE@ 
+        LEFT JOIN cmn_lookups_v tipo_investimento ON tipo_investimento.lookup_code = Upper(p.odf_object_code) AND tipo_investimento.lookup_type = 'INVESTMENT_OBJ_TYPE' AND tipo_investimento.language_code = 'en' 
         LEFT JOIN srm_resources dir_solic ON oci.bvf_diretor_solicita = dir_solic.id 
 
 --Funcao do recurso
@@ -154,9 +208,436 @@ AND categ.language_code = 'pt' and categ.lookup_type = 'INV_OTHER_CATEGORY_TYPE'
                         classificacao.language_code = 'pt'                  AND
                         classificacao.lookup_type   = 'BVF_CLASS'         
 
-WHERE   @WHERE:SECURITY:PROJECT:p.id@ 
-        AND @FILTER@
-        and (NVL(s_alloc.SLICE,0) +  NVL(s_EST.SLICE,0) + NVL(s_aCT.SLICE,0)) != 0 
+WHERE   p.id in (select object_instance_id from odfsec_project_v2 where user_id = 1) 
+        AND 1=1
+AND NLS_UPPER(trim(team.prid || r.id || p.id || programa.id || cal.month_key)) LIKE NLS_UPPER(trim(:chave_wildcard)) ESCAPE '\'
+AND team.prid || r.id || p.id || programa.id || cal.month_key IN (NULL)
+AND team.prid || r.id || p.id || programa.id || cal.month_key = :chave
+AND team.prid || r.id || p.id || programa.id || cal.month_key >= :chave_from
+AND team.prid || r.id || p.id || programa.id || cal.month_key <= :chave_to
+AND r.id IN (NULL)
+AND r.id = :id_interno_recurso
+AND r.id >= :id_interno_recurso_from
+AND r.id <= :id_interno_recurso_to
+AND NLS_UPPER(trim(r.first_name || ' ' || r.last_name)) LIKE NLS_UPPER(trim(:nome_recurso_wildcard)) ESCAPE '\'
+AND r.first_name || ' ' || r.last_name IN (NULL)
+AND r.first_name || ' ' || r.last_name = :nome_recurso
+AND r.first_name || ' ' || r.last_name >= :nome_recurso_from
+AND r.first_name || ' ' || r.last_name <= :nome_recurso_to
+AND NLS_UPPER(trim(r.unique_name)) LIKE NLS_UPPER(trim(:login_name_wildcard)) ESCAPE '\'
+AND r.unique_name IN (NULL)
+AND r.unique_name = :login_name
+AND r.unique_name >= :login_name_from
+AND r.unique_name <= :login_name_to
+AND r.is_active IN (NULL)
+AND r.is_active = :rec_ativo_id
+AND r.is_active >= :rec_ativo_id_from
+AND r.is_active <= :rec_ativo_id_to
+AND NLS_UPPER(trim(r.email)) LIKE NLS_UPPER(trim(:email_wildcard)) ESCAPE '\'
+AND r.email IN (NULL)
+AND r.email = :email
+AND r.email >= :email_from
+AND r.email <= :email_to
+AND odf.b3_charge_code IN (NULL)
+AND odf.b3_charge_code = :r_charge_code
+AND odf.b3_charge_code >= :r_charge_code_from
+AND odf.b3_charge_code <= :r_charge_code_to
+AND NLS_UPPER(trim((case when odf.b3_charge_code is null then charge_code.prname 
+when odf.b3_charge_code = 5000001 then 'CAPEX'
+when odf.b3_charge_code = 5000002 then 'OPEX' END))) LIKE NLS_UPPER(trim(:r_charge_code_name_wildcard)) ESCAPE '\'
+AND (case when odf.b3_charge_code is null then charge_code.prname 
+when odf.b3_charge_code = 5000001 then 'CAPEX'
+when odf.b3_charge_code = 5000002 then 'OPEX' END) IN (NULL)
+AND (case when odf.b3_charge_code is null then charge_code.prname 
+when odf.b3_charge_code = 5000001 then 'CAPEX'
+when odf.b3_charge_code = 5000002 then 'OPEX' END) = :r_charge_code_name
+AND (case when odf.b3_charge_code is null then charge_code.prname 
+when odf.b3_charge_code = 5000001 then 'CAPEX'
+when odf.b3_charge_code = 5000002 then 'OPEX' END) >= :r_charge_code_name_from
+AND (case when odf.b3_charge_code is null then charge_code.prname 
+when odf.b3_charge_code = 5000001 then 'CAPEX'
+when odf.b3_charge_code = 5000002 then 'OPEX' END) <= :r_charge_code_name_to
+AND NLS_UPPER(trim(decode(r.is_active,1,'Ativo','Inativo'))) LIKE NLS_UPPER(trim(:rec_ativo_wildcard)) ESCAPE '\'
+AND decode(r.is_active,1,'Ativo','Inativo') IN (NULL)
+AND decode(r.is_active,1,'Ativo','Inativo') = :rec_ativo
+AND decode(r.is_active,1,'Ativo','Inativo') >= :rec_ativo_from
+AND decode(r.is_active,1,'Ativo','Inativo') <= :rec_ativo_to
+AND prjr.prisrole IN (NULL)
+AND prjr.prisrole = :e_funcao
+AND prjr.prisrole >= :e_funcao_from
+AND prjr.prisrole <= :e_funcao_to
+AND NLS_UPPER(trim(obs.n8_name)) LIKE NLS_UPPER(trim(:n8_name_wildcard)) ESCAPE '\'
+AND obs.n8_name IN (NULL)
+AND obs.n8_name = :n8_name
+AND obs.n8_name >= :n8_name_from
+AND obs.n8_name <= :n8_name_to
+AND NLS_UPPER(trim(obs.n7_name)) LIKE NLS_UPPER(trim(:n7_name_wildcard)) ESCAPE '\'
+AND obs.n7_name IN (NULL)
+AND obs.n7_name = :n7_name
+AND obs.n7_name >= :n7_name_from
+AND obs.n7_name <= :n7_name_to
+AND NLS_UPPER(trim(obs.coord_name)) LIKE NLS_UPPER(trim(:coord_name_wildcard)) ESCAPE '\'
+AND obs.coord_name IN (NULL)
+AND obs.coord_name = :coord_name
+AND obs.coord_name >= :coord_name_from
+AND obs.coord_name <= :coord_name_to
+AND NLS_UPPER(trim(obs.geren_name)) LIKE NLS_UPPER(trim(:geren_name_wildcard)) ESCAPE '\'
+AND obs.geren_name IN (NULL)
+AND obs.geren_name = :geren_name
+AND obs.geren_name >= :geren_name_from
+AND obs.geren_name <= :geren_name_to
+AND NLS_UPPER(trim(obs.dir_name)) LIKE NLS_UPPER(trim(:dir_name_wildcard)) ESCAPE '\'
+AND obs.dir_name IN (NULL)
+AND obs.dir_name = :dir_name
+AND obs.dir_name >= :dir_name_from
+AND obs.dir_name <= :dir_name_to
+AND NLS_UPPER(trim(obs.dir_exec_name)) LIKE NLS_UPPER(trim(:dir_exec_name_wildcard)) ESCAPE '\'
+AND obs.dir_exec_name IN (NULL)
+AND obs.dir_exec_name = :dir_exec_name
+AND obs.dir_exec_name >= :dir_exec_name_from
+AND obs.dir_exec_name <= :dir_exec_name_to
+AND NLS_UPPER(trim(funcao.full_name)) LIKE NLS_UPPER(trim(:funcao_wildcard)) ESCAPE '\'
+AND funcao.full_name IN (NULL)
+AND funcao.full_name = :funcao
+AND funcao.full_name >= :funcao_from
+AND funcao.full_name <= :funcao_to
+AND funcao.id IN (NULL)
+AND funcao.id = :funcao_id
+AND funcao.id >= :funcao_id_from
+AND funcao.id <= :funcao_id_to
+AND NLS_UPPER(trim(ocp.bvf_exec)) LIKE NLS_UPPER(trim(:exec_por_wildcard)) ESCAPE '\'
+AND ocp.bvf_exec IN (NULL)
+AND ocp.bvf_exec = :exec_por
+AND ocp.bvf_exec >= :exec_por_from
+AND ocp.bvf_exec <= :exec_por_to
+AND NLS_UPPER(trim(tipo_contrat.name)) LIKE NLS_UPPER(trim(:tipo_contratacao_wildcard)) ESCAPE '\'
+AND tipo_contrat.name IN (NULL)
+AND tipo_contrat.name = :tipo_contratacao
+AND tipo_contrat.name >= :tipo_contratacao_from
+AND tipo_contrat.name <= :tipo_contratacao_to
+AND tipo_contrat.id IN (NULL)
+AND tipo_contrat.id = :tipo_contracao_id
+AND tipo_contrat.id >= :tipo_contracao_id_from
+AND tipo_contrat.id <= :tipo_contracao_id_to
+AND oci.bvf_diretor_solicita IN (NULL)
+AND oci.bvf_diretor_solicita = :diretor_solic_id
+AND oci.bvf_diretor_solicita >= :diretor_solic_id_from
+AND oci.bvf_diretor_solicita <= :diretor_solic_id_to
+AND NLS_UPPER(trim(dir_solic.first_name || ' ' || dir_solic.last_name)) LIKE NLS_UPPER(trim(:diretor_solic_wildcard)) ESCAPE '\'
+AND dir_solic.first_name || ' ' || dir_solic.last_name IN (NULL)
+AND dir_solic.first_name || ' ' || dir_solic.last_name = :diretor_solic
+AND dir_solic.first_name || ' ' || dir_solic.last_name >= :diretor_solic_from
+AND dir_solic.first_name || ' ' || dir_solic.last_name <= :diretor_solic_to
+AND NLS_UPPER(trim(p.name)) LIKE NLS_UPPER(trim(:nome_prj_wildcard)) ESCAPE '\'
+AND p.name IN (NULL)
+AND p.name = :nome_prj
+AND p.name >= :nome_prj_from
+AND p.name <= :nome_prj_to
+AND p.id IN (NULL)
+AND p.id = :id_interno_prj
+AND p.id >= :id_interno_prj_from
+AND p.id <= :id_interno_prj_to
+AND NLS_UPPER(trim(p.code)) LIKE NLS_UPPER(trim(:id_prj_wildcard)) ESCAPE '\'
+AND p.code IN (NULL)
+AND p.code = :id_prj
+AND p.code >= :id_prj_from
+AND p.code <= :id_prj_to
+AND NLS_UPPER(trim(gerente.first_name || ' ' || gerente.last_name)) LIKE NLS_UPPER(trim(:gerente_nome_wildcard)) ESCAPE '\'
+AND gerente.first_name || ' ' || gerente.last_name IN (NULL)
+AND gerente.first_name || ' ' || gerente.last_name = :gerente_nome
+AND gerente.first_name || ' ' || gerente.last_name >= :gerente_nome_from
+AND gerente.first_name || ' ' || gerente.last_name <= :gerente_nome_to
+AND gerente.user_id IN (NULL)
+AND gerente.user_id = :gerente_id
+AND gerente.user_id >= :gerente_id_from
+AND gerente.user_id <= :gerente_id_to
+AND NLS_UPPER(trim(gerente_rec.first_name || ' ' || gerente_rec.last_name)) LIKE NLS_UPPER(trim(:gerente_rec_nome_wildcard)) ESCAPE '\'
+AND gerente_rec.first_name || ' ' || gerente_rec.last_name IN (NULL)
+AND gerente_rec.first_name || ' ' || gerente_rec.last_name = :gerente_rec_nome
+AND gerente_rec.first_name || ' ' || gerente_rec.last_name >= :gerente_rec_nome_from
+AND gerente_rec.first_name || ' ' || gerente_rec.last_name <= :gerente_rec_nome_to
+AND gerente_rec.user_id IN (NULL)
+AND gerente_rec.user_id = :gerente_rec_id
+AND gerente_rec.user_id >= :gerente_rec_id_from
+AND gerente_rec.user_id <= :gerente_rec_id_to
+AND NLS_UPPER(trim(ocp.bvf_cod_proj_sap)) LIKE NLS_UPPER(trim(:cod_proj_sap_wildcard)) ESCAPE '\'
+AND ocp.bvf_cod_proj_sap IN (NULL)
+AND ocp.bvf_cod_proj_sap = :cod_proj_sap
+AND ocp.bvf_cod_proj_sap >= :cod_proj_sap_from
+AND ocp.bvf_cod_proj_sap <= :cod_proj_sap_to
+AND NLS_UPPER(trim(ocp.bvf_cod_proj_sap_ope)) LIKE NLS_UPPER(trim(:cod_proj_sap_ope_wildcard)) ESCAPE '\'
+AND ocp.bvf_cod_proj_sap_ope IN (NULL)
+AND ocp.bvf_cod_proj_sap_ope = :cod_proj_sap_ope
+AND ocp.bvf_cod_proj_sap_ope >= :cod_proj_sap_ope_from
+AND ocp.bvf_cod_proj_sap_ope <= :cod_proj_sap_ope_to
+AND NLS_UPPER(trim(ocp.bvf_cod_pr_sap_mo_ca)) LIKE NLS_UPPER(trim(:cod_pr_sap_mo_ca_wildcard)) ESCAPE '\'
+AND ocp.bvf_cod_pr_sap_mo_ca IN (NULL)
+AND ocp.bvf_cod_pr_sap_mo_ca = :cod_pr_sap_mo_ca
+AND ocp.bvf_cod_pr_sap_mo_ca >= :cod_pr_sap_mo_ca_from
+AND ocp.bvf_cod_pr_sap_mo_ca <= :cod_pr_sap_mo_ca_to
+AND NLS_UPPER(trim(ocp.bvf_prioridade)) LIKE NLS_UPPER(trim(:prioridade_wildcard)) ESCAPE '\'
+AND ocp.bvf_prioridade IN (NULL)
+AND ocp.bvf_prioridade = :prioridade
+AND ocp.bvf_prioridade >= :prioridade_from
+AND ocp.bvf_prioridade <= :prioridade_to
+AND NLS_UPPER(trim(programa.name)) LIKE NLS_UPPER(trim(:nome_programa_wildcard)) ESCAPE '\'
+AND programa.name IN (NULL)
+AND programa.name = :nome_programa
+AND programa.name >= :nome_programa_from
+AND programa.name <= :nome_programa_to
+AND programa.id IN (NULL)
+AND programa.id = :id_interno_programa
+AND programa.id >= :id_interno_programa_from
+AND programa.id <= :id_interno_programa_to
+AND NLS_UPPER(trim(programa.code)) LIKE NLS_UPPER(trim(:id_programa_wildcard)) ESCAPE '\'
+AND programa.code IN (NULL)
+AND programa.code = :id_programa
+AND programa.code >= :id_programa_from
+AND programa.code <= :id_programa_to
+AND NLS_UPPER(trim(etapa.name)) LIKE NLS_UPPER(trim(:etapa_wildcard)) ESCAPE '\'
+AND etapa.name IN (NULL)
+AND etapa.name = :etapa
+AND etapa.name >= :etapa_from
+AND etapa.name <= :etapa_to
+AND NLS_UPPER(trim((CASE WHEN ocp.bvf_porte=1 THEN 'Pequeno' WHEN ocp.bvf_porte=2 THEN 'Médio' WHEN ocp.bvf_porte=3 THEN 'Grande' END))) LIKE NLS_UPPER(trim(:porte_projeto_wildcard)) ESCAPE '\'
+AND (CASE WHEN ocp.bvf_porte=1 THEN 'Pequeno' WHEN ocp.bvf_porte=2 THEN 'Médio' WHEN ocp.bvf_porte=3 THEN 'Grande' END) IN (NULL)
+AND (CASE WHEN ocp.bvf_porte=1 THEN 'Pequeno' WHEN ocp.bvf_porte=2 THEN 'Médio' WHEN ocp.bvf_porte=3 THEN 'Grande' END) = :porte_projeto
+AND (CASE WHEN ocp.bvf_porte=1 THEN 'Pequeno' WHEN ocp.bvf_porte=2 THEN 'Médio' WHEN ocp.bvf_porte=3 THEN 'Grande' END) >= :porte_projeto_from
+AND (CASE WHEN ocp.bvf_porte=1 THEN 'Pequeno' WHEN ocp.bvf_porte=2 THEN 'Médio' WHEN ocp.bvf_porte=3 THEN 'Grande' END) <= :porte_projeto_to
+AND p.chargecodeid IN (NULL)
+AND p.chargecodeid = :codigo_encargo_id
+AND p.chargecodeid >= :codigo_encargo_id_from
+AND p.chargecodeid <= :codigo_encargo_id_to
+AND NLS_UPPER(trim(charge_code.prname)) LIKE NLS_UPPER(trim(:codigo_encargo_wildcard)) ESCAPE '\'
+AND charge_code.prname IN (NULL)
+AND charge_code.prname = :codigo_encargo
+AND charge_code.prname >= :codigo_encargo_from
+AND charge_code.prname <= :codigo_encargo_to
+AND NLS_UPPER(trim(pac_r.vendor_code)) LIKE NLS_UPPER(trim(:fornecedor_code_wildcard)) ESCAPE '\'
+AND pac_r.vendor_code IN (NULL)
+AND pac_r.vendor_code = :fornecedor_code
+AND pac_r.vendor_code >= :fornecedor_code_from
+AND pac_r.vendor_code <= :fornecedor_code_to
+AND NLS_UPPER(trim(fornec.address_name)) LIKE NLS_UPPER(trim(:fornecedor_wildcard)) ESCAPE '\'
+AND fornec.address_name IN (NULL)
+AND fornec.address_name = :fornecedor
+AND fornec.address_name >= :fornecedor_from
+AND fornec.address_name <= :fornecedor_to
+AND NLS_UPPER(trim(cal.month_key)) LIKE NLS_UPPER(trim(:month_key_wildcard)) ESCAPE '\'
+AND cal.month_key IN (NULL)
+AND cal.month_key = :month_key
+AND cal.month_key >= :month_key_from
+AND cal.month_key <= :month_key_to
+AND cal.period_start_date IN (NULL)
+AND cal.period_start_date = :period_start_date
+AND cal.period_start_date >= :period_start_date_from
+AND cal.period_start_date <= :period_start_date_to
+AND CASE WHEN cal.month_key >= '2019-06' 
+		THEN ((nvl(round(s_alloc.slice,1),0)) / (CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END) / 
+			  (CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+			  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+			  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+			  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+			  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+			  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23
+			  END))
+	 ELSE
+		 (sum(CASE WHEN p.odf_object_code = 'other' THEN nvl(s_alloc.slice,0) 
+						WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) END) /
+						(CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END)	/
+						(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+							  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+							  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+							  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+							  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+							  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 
+						 END)
+			   )
+END IN (NULL)
+AND CASE WHEN cal.month_key >= '2019-06' 
+		THEN ((nvl(round(s_alloc.slice,1),0)) / (CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END) / 
+			  (CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+			  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+			  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+			  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+			  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+			  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23
+			  END))
+	 ELSE
+		 (sum(CASE WHEN p.odf_object_code = 'other' THEN nvl(s_alloc.slice,0) 
+						WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) END) /
+						(CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END)	/
+						(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+							  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+							  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+							  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+							  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+							  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 
+						 END)
+			   )
+END = :horas_plan_equipe_fte
+AND CASE WHEN cal.month_key >= '2019-06' 
+		THEN ((nvl(round(s_alloc.slice,1),0)) / (CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END) / 
+			  (CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+			  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+			  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+			  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+			  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+			  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23
+			  END))
+	 ELSE
+		 (sum(CASE WHEN p.odf_object_code = 'other' THEN nvl(s_alloc.slice,0) 
+						WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) END) /
+						(CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END)	/
+						(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+							  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+							  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+							  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+							  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+							  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 
+						 END)
+			   )
+END >= :horas_plan_equipe_fte_from
+AND CASE WHEN cal.month_key >= '2019-06' 
+		THEN ((nvl(round(s_alloc.slice,1),0)) / (CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END) / 
+			  (CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+			  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+			  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+			  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+			  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+			  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23
+			  END))
+	 ELSE
+		 (sum(CASE WHEN p.odf_object_code = 'other' THEN nvl(s_alloc.slice,0) 
+						WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) END) /
+						(CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END)	/
+						(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+							  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+							  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+							  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+							  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+							  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 
+						 END)
+			   )
+END <= :horas_plan_equipe_fte_to
+AND CASE WHEN cal.month_key >= '2019-06' then (nvl(round(s_alloc.slice,1),0)) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end IN (NULL)
+AND CASE WHEN cal.month_key >= '2019-06' then (nvl(round(s_alloc.slice,1),0)) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end = :horas_plan_equipe
+AND CASE WHEN cal.month_key >= '2019-06' then (nvl(round(s_alloc.slice,1),0)) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end >= :horas_plan_equipe_from
+AND CASE WHEN cal.month_key >= '2019-06' then (nvl(round(s_alloc.slice,1),0)) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end <= :horas_plan_equipe_to
+AND CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end IN (NULL)
+AND CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end = :horas_prev2
+AND CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end >= :horas_prev2_from
+AND CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end <= :horas_prev2_to
+AND CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))/8) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end IN (NULL)
+AND CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))/8) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end = :horas_prev1
+AND CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))/8) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end >= :horas_prev1_from
+AND CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))/8) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end <= :horas_prev1_to
+AND sum(nvl(s_alloc.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) IN (NULL)
+AND sum(nvl(s_alloc.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) = :fte_prev1
+AND sum(nvl(s_alloc.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) >= :fte_prev1_from
+AND sum(nvl(s_alloc.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) <= :fte_prev1_to
+AND sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END) IN (NULL)
+AND sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END) = :horas_prev
+AND sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END) >= :horas_prev_from
+AND sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END) <= :horas_prev_to
+AND sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END)/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) IN (NULL)
+AND sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END)/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) = :fte_prev
+AND sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END)/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) >= :fte_prev_from
+AND sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END)/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) <= :fte_prev_to
+AND sum(nvl(s_act.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) IN (NULL)
+AND sum(nvl(s_act.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) = :fte_real
+AND sum(nvl(s_act.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) >= :fte_real_from
+AND sum(nvl(s_act.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END) <= :fte_real_to
+AND sum(nvl(s_act.slice,0)) IN (NULL)
+AND sum(nvl(s_act.slice,0)) = :horas_real
+AND sum(nvl(s_act.slice,0)) >= :horas_real_from
+AND sum(nvl(s_act.slice,0)) <= :horas_real_to
+AND NLS_UPPER(trim(tipo_investimento.name)) LIKE NLS_UPPER(trim(:tipo_investimento_wildcard)) ESCAPE '\'
+AND tipo_investimento.name IN (NULL)
+AND tipo_investimento.name = :tipo_investimento
+AND tipo_investimento.name >= :tipo_investimento_from
+AND tipo_investimento.name <= :tipo_investimento_to
+AND NLS_UPPER(trim(lower(tipo_investimento.lookup_code))) LIKE NLS_UPPER(trim(:id_tipo_investimento_wildcard)) ESCAPE '\'
+AND lower(tipo_investimento.lookup_code) IN (NULL)
+AND lower(tipo_investimento.lookup_code) = :id_tipo_investimento
+AND lower(tipo_investimento.lookup_code) >= :id_tipo_investimento_from
+AND lower(tipo_investimento.lookup_code) <= :id_tipo_investimento_to
+AND p.is_active IN (NULL)
+AND p.is_active = :ativo_id
+AND p.is_active >= :ativo_id_from
+AND p.is_active <= :ativo_id_to
+AND NLS_UPPER(trim(categ.name)) LIKE NLS_UPPER(trim(:name_categoria_wildcard)) ESCAPE '\'
+AND categ.name IN (NULL)
+AND categ.name = :name_categoria
+AND categ.name >= :name_categoria_from
+AND categ.name <= :name_categoria_to
+AND e.id IN (NULL)
+AND e.id = :id_esteira
+AND e.id >= :id_esteira_from
+AND e.id <= :id_esteira_to
+AND NLS_UPPER(trim(e.name)) LIKE NLS_UPPER(trim(:name_esteira_wildcard)) ESCAPE '\'
+AND e.name IN (NULL)
+AND e.name = :name_esteira
+AND e.name >= :name_esteira_from
+AND e.name <= :name_esteira_to
+AND oci.bvf_meta_corp IN (NULL)
+AND oci.bvf_meta_corp = :meta_corp_id
+AND oci.bvf_meta_corp >= :meta_corp_id_from
+AND oci.bvf_meta_corp <= :meta_corp_id_to
+AND NLS_UPPER(trim(oci.bvf_apl_proj)) LIKE NLS_UPPER(trim(:apl_proj_wildcard)) ESCAPE '\'
+AND oci.bvf_apl_proj IN (NULL)
+AND oci.bvf_apl_proj = :apl_proj
+AND oci.bvf_apl_proj >= :apl_proj_from
+AND oci.bvf_apl_proj <= :apl_proj_to
+AND NLS_UPPER(trim(CASE WHEN oci.bvf_meta_corp = 1 THEN 'Sim' ELSE 'Não' end)) LIKE NLS_UPPER(trim(:meta_corp_wildcard)) ESCAPE '\'
+AND CASE WHEN oci.bvf_meta_corp = 1 THEN 'Sim' ELSE 'Não' end IN (NULL)
+AND CASE WHEN oci.bvf_meta_corp = 1 THEN 'Sim' ELSE 'Não' end = :meta_corp
+AND CASE WHEN oci.bvf_meta_corp = 1 THEN 'Sim' ELSE 'Não' end >= :meta_corp_from
+AND CASE WHEN oci.bvf_meta_corp = 1 THEN 'Sim' ELSE 'Não' end <= :meta_corp_to
+AND oci.b3_roadmap IN (NULL)
+AND oci.b3_roadmap = :roadmap_id
+AND oci.b3_roadmap >= :roadmap_id_from
+AND oci.b3_roadmap <= :roadmap_id_to
+AND NLS_UPPER(trim(CASE WHEN oci.b3_roadmap = 1 THEN 'Sim' ELSE 'Não' end)) LIKE NLS_UPPER(trim(:roadmap_wildcard)) ESCAPE '\'
+AND CASE WHEN oci.b3_roadmap = 1 THEN 'Sim' ELSE 'Não' end IN (NULL)
+AND CASE WHEN oci.b3_roadmap = 1 THEN 'Sim' ELSE 'Não' end = :roadmap
+AND CASE WHEN oci.b3_roadmap = 1 THEN 'Sim' ELSE 'Não' end >= :roadmap_from
+AND CASE WHEN oci.b3_roadmap = 1 THEN 'Sim' ELSE 'Não' end <= :roadmap_to
+AND NLS_UPPER(trim(oci.b3_faixa_painel)) LIKE NLS_UPPER(trim(:faixa_painel_id_wildcard)) ESCAPE '\'
+AND oci.b3_faixa_painel IN (NULL)
+AND oci.b3_faixa_painel = :faixa_painel_id
+AND oci.b3_faixa_painel >= :faixa_painel_id_from
+AND oci.b3_faixa_painel <= :faixa_painel_id_to
+AND NLS_UPPER(trim(faixa.name)) LIKE NLS_UPPER(trim(:faixa_painel_wildcard)) ESCAPE '\'
+AND faixa.name IN (NULL)
+AND faixa.name = :faixa_painel
+AND faixa.name >= :faixa_painel_from
+AND faixa.name <= :faixa_painel_to
+AND NLS_UPPER(trim(classificacao.name)) LIKE NLS_UPPER(trim(:classificacao_wildcard)) ESCAPE '\'
+AND classificacao.name IN (NULL)
+AND classificacao.name = :classificacao
+AND classificacao.name >= :classificacao_from
+AND classificacao.name <= :classificacao_to
+AND oci.bvf_class IN (NULL)
+AND oci.bvf_class = :classificacao_id
+AND oci.bvf_class >= :classificacao_id_from
+AND oci.bvf_class <= :classificacao_id_to
+AND NLS_UPPER(trim(ocp.bvf_cod_proj_sap)) LIKE NLS_UPPER(trim(:ordem_int_des_capex_wildcard)) ESCAPE '\'
+AND ocp.bvf_cod_proj_sap IN (NULL)
+AND ocp.bvf_cod_proj_sap = :ordem_int_des_capex
+AND ocp.bvf_cod_proj_sap >= :ordem_int_des_capex_from
+AND ocp.bvf_cod_proj_sap <= :ordem_int_des_capex_to
+AND NLS_UPPER(trim(ocp.bvf_cod_proj_sap_ope)) LIKE NLS_UPPER(trim(:ordem_int_des_opex_wildcard)) ESCAPE '\'
+AND ocp.bvf_cod_proj_sap_ope IN (NULL)
+AND ocp.bvf_cod_proj_sap_ope = :ordem_int_des_opex
+AND ocp.bvf_cod_proj_sap_ope >= :ordem_int_des_opex_from
+AND ocp.bvf_cod_proj_sap_ope <= :ordem_int_des_opex_to
+AND NLS_UPPER(trim(ocp.bvf_cod_pr_sap_mo_ca)) LIKE NLS_UPPER(trim(:ordem_int_mdo_capex_wildcard)) ESCAPE '\'
+AND ocp.bvf_cod_pr_sap_mo_ca IN (NULL)
+AND ocp.bvf_cod_pr_sap_mo_ca = :ordem_int_mdo_capex
+AND ocp.bvf_cod_pr_sap_mo_ca >= :ordem_int_mdo_capex_from
+AND ocp.bvf_cod_pr_sap_mo_ca <= :ordem_int_mdo_capex_to
+and (NVL(s_alloc.SLICE,0) +  NVL(s_EST.SLICE,0) + NVL(s_aCT.SLICE,0)) != 0 
  AND r.id in 
 (
     select -1 from dual
@@ -165,7 +646,7 @@ WHERE   @WHERE:SECURITY:PROJECT:p.id@
       int.id
     from srm_resources int
     where r.id                                = int.id    
-    and @where:param:user_def:integer:obs_prj@ is null
+    and :param_obs_prj is null
     union
     select assocprj.record_id
     from prj_obs_associations assocprj
@@ -175,22 +656,22 @@ WHERE   @WHERE:SECURITY:PROJECT:p.id@
     on obs_types.id = obs_units.type_id
     join prj_obs_units_flat flprj
     on ((assocprj.unit_id                                            = flprj.unit_id
-    and flprj.branch_unit_id                                         = @where:param:user_def:integer:obs_prj@
-    and (@where:param:user_def:string:obs_assoc_type_cliente@       is null
-    or upper(@where:param:user_def:string:obs_assoc_type_cliente@)   = upper('obs_unit_and_children')
-    or upper(@where:param:user_def:string:obs_assoc_type_cliente@)   = upper('obs_unit_child_and_ancestors')))
+    and flprj.branch_unit_id                                         = :param_obs_prj
+    and (:param_obs_assoc_type_cliente       is null
+    or upper(:param_obs_assoc_type_cliente)   = upper('obs_unit_and_children')
+    or upper(:param_obs_assoc_type_cliente)   = upper('obs_unit_child_and_ancestors')))
     or (assocprj.unit_id                                             = flprj.branch_unit_id
-    and flprj.unit_id                                                = @where:param:user_def:integer:obs_prj@
-    and (upper(@where:param:user_def:string:obs_assoc_type_cliente@) = upper('obs_unit_and_ancestors')
-    or upper(@where:param:user_def:string:obs_assoc_type_cliente@)   = upper('obs_unit_child_and_ancestors')))
+    and flprj.unit_id                                                = :param_obs_prj
+    and (upper(:param_obs_assoc_type_cliente) = upper('obs_unit_and_ancestors')
+    or upper(:param_obs_assoc_type_cliente)   = upper('obs_unit_child_and_ancestors')))
     or (assocprj.unit_id                                             = flprj.unit_id
     and flprj.unit_id                                                = flprj.branch_unit_id
-    and assocprj.unit_id                                             = @where:param:user_def:integer:obs_prj@
-    and upper(@where:param:user_def:string:obs_assoc_type_cliente@)  = upper('obs_unit_only')))
+    and assocprj.unit_id                                             = :param_obs_prj
+    and upper(:param_obs_assoc_type_cliente)  = upper('obs_unit_only')))
     where r.id                                                 = assocprj.record_id
     and upper(obs_types.unique_name)                                 = upper('bvf_departamento')
     and upper(assocprj.table_name)                                   = upper('SRM_RESOURCES')
-    and @where:param:user_def:integer:obs_prj@                  is not null
+    and :param_obs_prj                  is not null
   )
   
 GROUP BY team.prid || r.id || p.id || programa.id || cal.month_key,
@@ -255,4 +736,4 @@ ocp.bvf_porte,
          ocp.bvf_cod_proj_sap,
          ocp.bvf_cod_proj_sap_ope,
          ocp.bvf_cod_pr_sap_mo_ca
-HAVING   @HAVING_FILTER@
+HAVING   1=1
