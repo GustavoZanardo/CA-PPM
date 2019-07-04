@@ -1,0 +1,258 @@
+SELECT @SELECT:DIM:USER_DEF:IMPLIED:PROJETO:team.prid || r.id || p.id || programa.id || cal.month_key:chave@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:r.id:id_interno_recurso@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:r.first_name || ' ' || r.last_name:nome_recurso@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:r.unique_name:login_name@,  
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:p.name:nome_prj@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:p.id:id_interno_prj@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:p.code:id_prj@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:gerente.first_name || ' ' || gerente.last_name:gerente_nome@,    
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:cal.month_key:month_key@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:cal.period_start_date:period_start_date@,
+@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:CASE WHEN cal.month_key >= '2019-06' 
+		THEN ((nvl(round(s_alloc.slice,1),0)) / (CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END) / 
+			  (CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+			  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+			  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+			  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+			  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+			  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23
+			  END))
+	 ELSE
+		 (sum(CASE WHEN p.odf_object_code = 'other' THEN nvl(s_alloc.slice,0) 
+						WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) END) /
+						(CASE WHEN r.PERSON_TYPE = 'bvf_estagiario' THEN 6 ELSE 8 END)	/
+						(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 
+							  WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 
+							  WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 
+							  WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 
+							  WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 
+							  WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 
+						 END)
+			   )
+END:horas_plan_equipe_fte@,
+@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:CASE WHEN cal.month_key >= '2019-06' then (nvl(round(s_alloc.slice,1),0)) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end:horas_plan_equipe@,
+@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end:horas_prev2@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:CASE WHEN cal.month_key >= '2019-06' then (sum(nvl(round(s_alloc.slice,1),0))/8) else (sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END))end:horas_prev1@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(nvl(s_alloc.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END):FTE_prev1@,
+        @SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea')  THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END):horas_prev@,
+@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(CASE WHEN p.odf_object_code =  'other' THEN nvl(s_alloc.slice,0) WHEN (p.odf_object_code =  'project' or p.odf_object_code = 'idea') THEN nvl(s_est.slice,0)+nvl(s_act.slice,0) ELSE 0 END)/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END):FTE_prev@,
+@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(nvl(s_act.slice,0))/8/(CASE WHEN cal.month_key IN ('2015-02','2017-02','2017-04','2017-12','2018-02','2018-12','2020-02','2021-02') THEN 18 WHEN cal.month_key IN ('2014-03','2014-11','2015-11','2016-01','2016-02','2017-11','2018-09','2018-11','2019-03','2019-06','2019-11','2019-12','2020-11','2021-01','2022-02','2022-04') THEN 19 WHEN cal.month_key IN ('2014-02','2014-04','2014-06','2014-12','2015-04','2015-05','2015-12','2016-04','2016-10','2016-11','2017-09','2019-02','2020-05','2020-12','2021-04','2021-10','2021-11','2022-01','2022-10','2022-11') THEN 20 WHEN cal.month_key IN ('2014-05','2014-08','2015-01','2015-06','2015-08','2015-09','2015-10','2016-05','2016-07','2016-09','2016-12','2017-01','2017-06','2017-07','2017-10','2018-01','2018-03','2018-04','2018-05','2018-06','2018-07','2019-01','2019-04','2019-09','2020-04','2020-06','2020-08','2020-09','2020-10','2021-05','2021-06','2021-07','2021-09','2021-12','2022-06','2022-07','2022-09') THEN 21 WHEN cal.month_key IN ('2014-01','2014-07','2014-09','2015-03','2015-07','2016-03','2016-06','2017-05','2018-10','2019-05','2019-07','2019-08','2020-01','2020-03','2020-07','2021-08','2022-03','2022-05','2022-12') THEN 22 WHEN cal.month_key IN ('2014-10','2016-08','2017-03','2017-08','2018-08','2019-10','2021-03','2022-08') THEN 23 END):FTE_real@,
+@SELECT:DIM_PROP:USER_DEF:IMPLIED:PROJETO:sum(nvl(s_act.slice,0)):horas_real@
+        
+
+FROM    inv_investments p 
+        INNER JOIN prteam team ON team.prprojectid = p.id 
+        join odf_ca_team odf on odf.id = team.prid
+        INNER JOIN srm_resources r ON r.resource_type = 0 AND team.prresourceid = r.id
+        LEFT JOIN prtask t 
+            INNER JOIN prassignment a ON   t.prid = a.prtaskid
+        ON p.id = t.prprojectid AND a.team_id = team.prid      
+
+--projetos
+
+        LEFT JOIN inv_projects ip ON p.id = ip.prid  AND ip.is_program <> 1 AND ip.is_template <> 1
+        LEFT JOIN odf_ca_inv oci ON oci.id = p.id
+        LEFT JOIN odf_ca_project ocp ON ocp.id = p.id
+        LEFT JOIN cmn_lookups_v etapa  ON p.stage_code    = etapa.lookup_code AND 
+                        etapa.language_code  = 'pt'              AND
+                        etapa.lookup_type    = 'INV_STAGE_TYPE'
+--ideias
+LEFT JOIN odf_ca_idea idea ON p.id = idea.id and idea.bvf_tipo_ideia = 'demanda'        
+        
+--esteira
+        LEFT JOIN odf_ca_bvf_esteira e ON e.id = oci.bvf_esteira
+        
+        LEFT JOIN cmn_lookups_v faixa 
+                        ON oci.b3_faixa_painel = faixa.lookup_code       AND
+                        faixa.language_code     = 'pt'                        AND
+                        faixa.lookup_type       = 'B3_FAIXA_PAINEL'
+--gerente
+        LEFT JOIN srm_resources gerente ON gerente.user_id = p.manager_id
+
+-- gerente recurso
+
+	LEFT JOIN srm_resources gerente_rec on gerente_rec.user_id = r.manager_id
+
+--Categoria de outos trabalhos 
+LEFT JOIN INV_OTHERS outro ON p.id = outro.id
+LEFT JOIN cmn_lookups_v categ ON categ.lookup_code = outro.CATEGORY_CODE 
+AND categ.language_code = 'pt' and categ.lookup_type = 'INV_OTHER_CATEGORY_TYPE'
+--Calendario
+        INNER  JOIN nbi_dim_calendar_time cal ON cal.hierarchy_level = 'MONTH' AND Trunc(cal.period_start_date,'MM') BETWEEN Trunc(P.SCHEDULE_START, 'MM') AND Trunc(P.SCHEDULE_FINISH,'MM')
+
+--timeslice allocation
+        LEFT JOIN prj_blb_slices s_alloc 
+            INNER  JOIN prj_blb_slicerequests sr_alloc ON s_alloc.slice_request_id = sr_alloc.id AND  sr_alloc.request_name = 'MONTHLYRESOURCEALLOCCURVE'
+        ON team.prid = s_alloc.prj_object_id AND s_alloc.slice_date = cal.period_start_date 
+--timeslice estimate
+        LEFT JOIN prj_blb_slices s_est 
+            INNER  JOIN prj_blb_slicerequests sr_est ON   s_est.slice_request_id = sr_est.id AND  sr_est.request_name = 'MONTHLYRESOURCEESTCURVE'
+        ON a.prID = s_est.prj_object_id AND s_est.slice_date   = cal.period_start_date
+
+--timeslice actual
+        LEFT JOIN prj_blb_slices s_act 
+            INNER  JOIN prj_blb_slicerequests sr_act ON   s_act.slice_request_id = sr_act.id AND  sr_act.request_name = 'MONTHLYRESOURCEACTCURVE'
+        ON a.prID = s_act.prj_object_id AND  s_act.slice_date   = cal.period_start_date
+
+--fornecedor e lookups
+        LEFT JOIN pac_mnt_resources pac_r on r.id = pac_r.id
+        LEFT JOIN APMASTER fornec on  pac_r.vendor_code = fornec.vendor_code and fornec.status_type = 1
+        LEFT JOIN cmn_lookups_v tipo_contrat ON tipo_contrat.lookup_type = 'SRM_RESOURCE_TYPE' AND tipo_contrat.language_code = @WHERE:PARAM:LANGUAGE@ AND tipo_contrat.id = r.person_type
+        LEFT JOIN prchargecode charge_code on p.chargecodeid = charge_code.prid
+        LEFT JOIN cmn_lookups_v tipo_investimento ON tipo_investimento.lookup_code = Upper(p.odf_object_code) AND tipo_investimento.lookup_type = 'INVESTMENT_OBJ_TYPE' AND tipo_investimento.language_code = @WHERE:PARAM:LANGUAGE@ 
+        LEFT JOIN srm_resources dir_solic ON oci.bvf_diretor_solicita = dir_solic.id 
+
+--Funcao do recurso
+        INNER JOIN prj_resources prjr ON r.id = prjr.prid
+        LEFT JOIN srm_resources funcao ON prjr.prprimaryroleid = funcao.id
+
+--OBS do recurso
+        LEFT JOIN (SELECT r2.id resource_id,
+                          CASE WHEN unit.depth = 8 THEN unit.name ELSE NULL END n8_name,
+                                                                                            CASE WHEN unit.depth = 7 THEN unit.name
+                                                                                                            WHEN unit.depth = 8 THEN pai.name ELSE NULL END n7_name,
+                                                                                                           
+                                                                                            CASE WHEN unit.depth = 6 THEN unit.name
+                               WHEN unit.depth = 7 THEN pai.name
+                               WHEN unit.depth = 8 THEN avo.name ELSE NULL END coord_name,
+                                                                                                           
+                          CASE WHEN unit.depth = 5 THEN unit.name
+                               WHEN unit.depth = 6 THEN pai.name
+                               WHEN unit.depth = 7 THEN avo.name
+                                                                                                            WHEN unit.depth = 8 THEN bisavo.name ELSE NULL END geren_name,
+                         
+                                                                                            CASE WHEN unit.depth = 4 THEN unit.name
+                               WHEN unit.depth = 5 THEN pai.name
+                               WHEN unit.depth = 6 THEN avo.name
+                                                                                                            WHEN unit.depth = 7 THEN bisavo.name
+                                                                                                 WHEN unit.depth = 8 THEN tataravo.name ELSE NULL END dir_name,
+                                                                                                                                                                                      
+                          CASE WHEN unit.depth = 3 THEN unit.name
+                               WHEN unit.depth = 4 THEN pai.name
+                               WHEN unit.depth = 5 THEN avo.name
+                               WHEN unit.depth = 6 THEN bisavo.name
+                                                                                                            WHEN unit.depth = 7 THEN tataravo.name
+                                                                                                 WHEN unit.depth = 8 THEN n8.name ELSE NULL END dir_exec_name
+                   FROM  srm_resources r2
+                         INNER JOIN prj_obs_associations obs_dep ON obs_dep.record_id = r2.id AND obs_dep.table_name = 'SRM_RESOURCES'
+                         LEFT JOIN prj_obs_units unit ON obs_dep.unit_id = unit.id
+                         LEFT JOIN prj_obs_units pai ON unit.parent_id = pai.id
+                         LEFT JOIN prj_obs_units avo ON pai.parent_id = avo.id
+                         LEFT JOIN prj_obs_units bisavo ON avo.parent_id = bisavo.id
+                         LEFT JOIN prj_obs_units tataravo ON bisavo.parent_id = tataravo.id
+                         LEFT JOIN prj_obs_units n8 ON tataravo.parent_id = n8.id
+                         INNER JOIN prj_obs_types type_dep ON unit.type_id = type_dep.id AND type_dep.unique_name = 'bvf_departamento') obs
+            ON obs.resource_id = r.id
+
+
+--programa
+        LEFT JOIN cop_program_v vprog ON p.id = vprog.project_id  AND vprog.is_program = 0 
+        LEFT JOIN inv_investments programa ON vprog.program_id = programa.id
+--classificação do projeto
+ LEFT JOIN cmn_lookups_v classificacao 
+                     ON oci.bvf_class    = classificacao.lookup_code AND 
+                        classificacao.language_code = 'pt'                  AND
+                        classificacao.lookup_type   = 'BVF_CLASS'         
+
+WHERE   @WHERE:SECURITY:PROJECT:p.id@ 
+        AND @FILTER@
+        and (NVL(s_alloc.SLICE,0) +  NVL(s_EST.SLICE,0) + NVL(s_aCT.SLICE,0)) != 0 
+ AND r.id in 
+(
+    select -1 from dual
+    union
+    select
+      int.id
+    from srm_resources int
+    where r.id                                = int.id    
+    and @where:param:user_def:integer:obs_prj@ is null
+    union
+    select assocprj.record_id
+    from prj_obs_associations assocprj
+    join prj_obs_units obs_units
+    on obs_units.id = assocprj.unit_id
+    join prj_obs_types obs_types
+    on obs_types.id = obs_units.type_id
+    join prj_obs_units_flat flprj
+    on ((assocprj.unit_id                                            = flprj.unit_id
+    and flprj.branch_unit_id                                         = @where:param:user_def:integer:obs_prj@
+    and (@where:param:user_def:string:obs_assoc_type_cliente@       is null
+    or upper(@where:param:user_def:string:obs_assoc_type_cliente@)   = upper('obs_unit_and_children')
+    or upper(@where:param:user_def:string:obs_assoc_type_cliente@)   = upper('obs_unit_child_and_ancestors')))
+    or (assocprj.unit_id                                             = flprj.branch_unit_id
+    and flprj.unit_id                                                = @where:param:user_def:integer:obs_prj@
+    and (upper(@where:param:user_def:string:obs_assoc_type_cliente@) = upper('obs_unit_and_ancestors')
+    or upper(@where:param:user_def:string:obs_assoc_type_cliente@)   = upper('obs_unit_child_and_ancestors')))
+    or (assocprj.unit_id                                             = flprj.unit_id
+    and flprj.unit_id                                                = flprj.branch_unit_id
+    and assocprj.unit_id                                             = @where:param:user_def:integer:obs_prj@
+    and upper(@where:param:user_def:string:obs_assoc_type_cliente@)  = upper('obs_unit_only')))
+    where r.id                                                 = assocprj.record_id
+    and upper(obs_types.unique_name)                                 = upper('bvf_departamento')
+    and upper(assocprj.table_name)                                   = upper('SRM_RESOURCES')
+    and @where:param:user_def:integer:obs_prj@                  is not null
+  )
+  
+GROUP BY team.prid || r.id || p.id || programa.id || cal.month_key,
+         r.id,
+         r.first_name || ' ' || r.last_name,
+         r.person_type,
+         r.is_active,
+ nvl(round(s_alloc.slice,1),0)/8,
+ nvl(round(s_alloc.slice,1),0),
+ r.email,
+         odf.b3_charge_code,
+ r.unique_name,
+         prjr.prisrole,
+         funcao.full_name,
+         funcao.id,
+         ocp.bvf_exec,
+         obs.coord_name,
+         obs.geren_name,
+         obs.dir_name,
+         obs.dir_exec_name,
+         tipo_contrat.name,
+         tipo_contrat.id,
+         oci.bvf_diretor_solicita, 
+         dir_solic.first_name || ' ' || dir_solic.last_name,
+         p.name,
+         p.id,
+         p.code,
+         gerente.first_name || ' ' || gerente.last_name,
+         gerente.user_id,
+         gerente_rec.first_name || ' ' || gerente_rec.last_name,
+	 gerente_rec.user_id,
+         obs.n8_name,
+         obs.n7_name,
+         ocp.bvf_cod_proj_sap,
+         ocp.bvf_cod_proj_sap_ope,
+         ocp.bvf_cod_pr_sap_mo_ca,
+         ocp.bvf_prioridade,
+         programa.name, 
+         programa.id,
+         etapa.name,
+ocp.bvf_porte,
+         programa.code,
+         p.chargecodeid,
+         charge_code.prname,
+         pac_r.vendor_code,
+         fornec.address_name,
+         month_key,
+         period_start_date,
+         tipo_investimento.name,
+         lower(tipo_investimento.lookup_code),
+         p.is_active,
+         categ.name,
+         e.id,
+         e.name,
+         oci.bvf_meta_corp,
+         oci.bvf_apl_proj,
+         oci.b3_roadmap,
+         oci.b3_faixa_painel,
+         faixa.name,
+         classificacao.name,
+         oci.bvf_class,
+         ocp.bvf_cod_proj_sap,
+         ocp.bvf_cod_proj_sap_ope,
+         ocp.bvf_cod_pr_sap_mo_ca
+HAVING   @HAVING_FILTER@
