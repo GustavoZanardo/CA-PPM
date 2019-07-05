@@ -1,0 +1,21 @@
+<NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/nikuxog_customObjectInstance.xsd">
+		   <Header action="write" externalSource="NIKU" objectType="customObjectInstance" version="15.4.1.115" />
+		   <customObjectInstances objectCode="b3_baseline_alloc">
+			<core:forEach items="${sa.rows}" trim="true" var="SA">
+			  <instance instanceCode="-1" 
+						objectCode="b3_baseline_alloc" 
+						parentInstanceCode="${SA.inv_code}" 
+						parentObjectCode="project">
+				 <CustomInformation>
+					<ColumnValue name="code">-1</ColumnValue>					
+					<ColumnValue name="b3_mes">${SA.MES}</ColumnValue>
+					<ColumnValue name="b3_recurso">${SA.UNIQUE_NAME}</ColumnValue>
+					<ColumnValue name="b3_horas_alocadas">${SA.ALOCACAO_PLAN}</ColumnValue>
+					<ColumnValue name="b3_horas_real">${SA.HORAS_REALIZADAS}</ColumnValue>
+					<ColumnValue name="b3_rev_atual">1</ColumnValue>
+					<ColumnValue name="partition_code">bvf_corporativo</ColumnValue>
+				 </CustomInformation>
+			  </instance> 
+			</core:forEach>
+		   </customObjectInstances>
+		</NikuDataBus>
