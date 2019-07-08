@@ -4,17 +4,22 @@ SUM (ACT)HORAS_REALIZADAS,
 month_key MES
 ,UNIQUE_NAME
 ,FIRST_NAME || ' ' || LAST_NAME FULL_NAME
+,REC_ID
+,inv_code
+,inv_id
 FROM(
 
 		SELECT 
 
-		 team.prid || r.id || p.id external_id,
 		 p.id inv_id,
 		 p.name inv_name,
 		 p.code inv_code,
 		 r.unique_name UNIQUE_NAME,
 		 r.LAST_NAME LAST_NAME,
 		 r.FIRST_NAME FIRST_NAME,
+         r.user_id USER_ID,         
+TO_CHAR(sysdate, 'YYYYMMDDHHMMSSMMss') base_id,
+         r.id REC_ID,
 		 NVL(ROUND(s_alloc.slice,1),0) ALLOC,
          NVL(ROUND(s_act.slice,1),0) ACT,         
 		 cal.month_key month_key
@@ -44,13 +49,16 @@ FROM(
 		WHERE   t.prexternalid = '~rmw'                
                 and p.is_active = 1
                 and  NVL(ROUND(s_alloc.slice,1),0) !=0
-				and p.id = ${gel_objectInstanceId}
+				and p.id = 5375085
 	) ASD
 
 group by 
 month_key
 ,UNIQUE_NAME
 ,FIRST_NAME || ' ' || LAST_NAME
+,REC_ID
+,inv_code
+,inv_id
 
 order by
 month_key 
