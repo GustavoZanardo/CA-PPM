@@ -1,5 +1,7 @@
 <NikuDataBus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../xsd/nikuxog_customObjectInstance.xsd">
-		   <Header action="write" externalSource="NIKU" objectType="customObjectInstance" version="15.4.1.115" />
+		   <Header action="write" externalSource="NIKU" objectType="customObjectInstance" version="15.4.1.115" >
+		   <args name="overrideAutoNumbering" value="false"/>
+		   </Header>
 		   <customObjectInstances objectCode="b3_baseline_alloc">
 			<core:forEach items="${sa.rows}" trim="true" var="SA">
 			  <instance instanceCode="-1" 
