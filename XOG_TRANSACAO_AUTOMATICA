@@ -22,7 +22,7 @@ SELECT
  NVL(ROUND(s_alloc.slice,1),0) ALLOC,
  oteam.b3_trans_auto transacao_automatica,
  pr.prroleid funcao,
- TO_CHAR(SYSDATE - 5, 'YYYY-MM-DD') data_hoje,
+ TO_CHAR(SYSDATE - 7, 'YYYY-MM-DD') data_hoje,
  tsk.prid id_tarefa
  
 FROM 
@@ -49,7 +49,7 @@ WHERE   (inv.odf_object_code = 'project' or inv.odf_object_code = 'other' )
 AND      tsk.is_open_te = 1
 AND      inv.is_open_for_te = 1
 AND      tsk.prexternalid = '~rmw'
-AND      cal.month_key = '2019-06'
+AND      cal.month_key = TO_CHAR(sysdate-15, 'YYYY-MM')
 AND      oteam.b3_trans_auto = 1  
 AND      NVL(ROUND(s_alloc.slice,1),0) != 0
 -- FILTRO DE FUNÇÃO
