@@ -11,5 +11,5 @@
     <core:arg type="com.niku.union.security.DefaultSecurityIdentifier" value="${secId1}"/>
   </core:invoke>
   <core:set value="${secId3.getSessionId()}" var="sessionID"/>
-  <core:catch var="erro">
-    <gel:setDataSource dbId="niku" var="nikuDS"/>
+  <!-- Consulta -->
+  <gel:setDataSource dbId="niku"/>
