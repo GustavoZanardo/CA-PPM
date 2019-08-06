@@ -1,0 +1,56 @@
+------ Chamar processo através do gel script
+
+<gel:script xmlns:bpm="jelly:com.niku.bpm.gel.BPMTagLibrary" xmlns:core="jelly:core" xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary"
+  xmlns:sql="jelly:sql" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <gel:setDataSource dbId="niku" var="nikuDS"/>
+  <gel:parameter default="bvf_calc_classif_proj_v2" var="processCode"/>
+  <!-- Obtendo id do processo -->
+  <sql:query dataSource="${nikuDS}" var="proc_info"><![CDATA[
+    select 
+      procv.id proc_id,
+      bdo.object_name object_name
+    from 
+      bpm_def_processes proce
+        join bpm_def_process_versions procv
+        on procv.process_id = proce.id
+        join bpm_def_objects bdo on bdo.pk_id = procv.id
+    where
+      proce.process_code = '${processCode}'
+      and(bdo.is_system = 0 or bdo.is_system is null)  
+    ]]></sql:query>
+  <core:set value="${proc_info.rows[0].proc_id}" var="procID"/>
+  <core:set value="${proc_info.rows[0].object_name}" var="ObjectKey"/>
+  <!-- Obtendo id do usuario -->
+  <sql:query dataSource="${nikuDS}" var="user_info"><![CDATA[
+    select 
+      id user_id
+    from 
+      cmn_sec_users 
+    where 
+      id = 1
+    ]]></sql:query>
+  <core:set value="${user_info.rows[0].user_id}" var="userID"/>
+  <!-- Obtendo id da ideia de origem -->
+  <sql:query dataSource="${nikuDS}" var="prj_info"><![CDATA[
+    SELECT 
+               inv.id   id, 
+               inv.name name, 
+               inv.code code,
+               inv.chargecodeid,
+               inv.progress
+                
+               
+        FROM   inv_investments inv
+               join odf_ca_project p ON inv.id = p.id AND inv.is_active = 1
+               join pac_mnt_projects mnt_prj on mnt_prj.id = inv.id
+               join inv_projects inv_p ON p.id = inv_p.prid 
+                        AND inv_p.is_template = 0 
+                        AND inv_p.is_program = 0
+              
+        where inv.is_active = 1 
+              
+    ]]></sql:query>
+  <core:forEach items="${prj_info.rows}" var="info">
+    <bpm:startProcess initObjectId="${info.id}" initObjectKey="${ObjectKey}" initUserId="${userID}" processVersionId="${procID}"/>
+  </core:forEach>
+</gel:script>
